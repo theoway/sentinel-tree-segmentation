@@ -1,5 +1,6 @@
 # Project related
 data/images/
+sat_imgs/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
