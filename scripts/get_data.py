@@ -3,6 +3,7 @@ from dotenv import load_dotenv
 import argparse
 import os
 import json
+from datetime import datetime, timedelta
 
 #gets the bottom left and the top right coords for the bounding box
 with open("../data/bbox/bbox_1.json") as file:
@@ -17,15 +18,18 @@ config = SHConfig()
 config.sh_client_id = os.getenv("CLIENT_ID")
 config.sh_client_secret = os.getenv("CLIENT_SECRET")
 
-parser = argparse.ArgumentParser(description = "Time Interval")
-parser.add_argument("-s", "--start", type = str, required = True, help = "The start date in YYYY-MM-DD format")
-parser.add_argument("-e", "--end", type = str, required = True, help = "The end date in YYYY-MM-DD format")
-
+parser = argparse.ArgumentParser(description = "Date")
+parser.add_argument("-d", "--date", type = str, required = True, help = "The date in YYYY-MM-DD format")
 args = parser.parse_args()
 
+dt = [int(d) for d in args.date.split('-')]
+date = datetime(*dt)
+start_date = date - timedelta(days = 60)
+end_date = date + timedelta(days = 60)
 bbox = BBox((bl, tr), crs=CRS.WGS84)
+
 size = (700, 466)
-time_interval = args.start, args.end
+time_interval = start_date, end_date
 data_folder = "../sat_imgs"
 
 evalscript_true_color = """
