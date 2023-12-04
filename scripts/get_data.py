@@ -58,12 +58,53 @@ request = SentinelHubRequest(
         SentinelHubRequest.input_data(
             data_collection=DataCollection.SENTINEL2_L2A,
             time_interval=time_interval,
+            mosaicking_order="leastCC"
         )
     ],
-    responses=[SentinelHubRequest.output_response("default", MimeType.PNG)],
+    responses=[SentinelHubRequest.output_response("default", MimeType.TIFF)],
     bbox=bbox,
     size=size,
     config=config,
 )
 
+evalscript_dem = """
+//VERSION=3
+
+function setup() {
+    return {
+        input: [{
+            bands: ["DEM"]
+        }],
+        output: {
+            bands: 1,
+            sampleType: "FLOAT32" 
+        }
+    };
+}
+
+function evaluatePixel(sample) {
+    return [sample.DEM];
+}
+"""
+
+request_dem = SentinelHubRequest(
+    data_folder = data_folder,
+    evalscript=evalscript_dem,
+    input_data=[
+        SentinelHubRequest.input_data(
+            data_collection=DataCollection.DEM,
+            time_interval=time_interval,
+            mosaicking_order="leastCC"
+            
+        )
+    ],
+    responses=[SentinelHubRequest.output_response("default", MimeType.TIFF)],
+    bbox=bbox,
+    size=size,
+    config=config,
+)
+
+print("Downloading L2A...")
 image = request.get_data(save_data = True, show_progress=True)
+print("Downloading DEM...")
+image_dem = request_dem.get_data(save_data = True, show_progress = True)
