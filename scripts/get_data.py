@@ -4,10 +4,15 @@ import argparse
 import os
 import json
 from datetime import datetime, timedelta
+from utils import calcSlope, process_dem
+
+import numpy as np
 
 #gets the bottom left and the top right coords for the bounding box
-with open("../data/bbox/bbox_1.json") as file:
+bbox_id = 1
+with open("../data/bbox/bbox_{id}.json".format(id = bbox_id)) as file:
     data = json.load(file)
+    
 coords = data['geometry']['coordinates'][0]
 bl = (min(row[0] for row in coords), min(row[1] for row in coords))
 tr = (max(row[0] for row in coords), max(row[1] for row in coords))
@@ -28,7 +33,7 @@ start_date = date - timedelta(days = 60)
 end_date = date + timedelta(days = 60)
 bbox = BBox((bl, tr), crs=CRS.WGS84)
 
-size = (700, 466)
+size = (512, 512)
 time_interval = start_date, end_date
 data_folder = "../sat_imgs"
 
@@ -104,7 +109,16 @@ request_dem = SentinelHubRequest(
     config=config,
 )
 
+
+path = os.path.join(data_folder, str(bbox_id))
+if not os.path.isdir(path):
+    os.mkdir(path)
 print("Downloading L2A...")
-image = request.get_data(save_data = True, show_progress=True)
+# image = request.get_data(save_data = True, show_progress=True)
+image = request.get_data()[0]
+np.save(path + "/L2A", image)
 print("Downloading DEM...")
-image_dem = request_dem.get_data(save_data = True, show_progress = True)
+# image_dem = request_dem.get_data(save_data = True, show_progress = True)
+image_dem = request_dem.get_data()[0]
+image_dem = process_dem(image_dem)
+np.save(path + "/DEM", image_dem)
