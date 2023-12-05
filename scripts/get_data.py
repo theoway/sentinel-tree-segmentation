@@ -37,24 +37,38 @@ size = (512, 512)
 time_interval = start_date, end_date
 data_folder = "../sat_imgs"
 
-evalscript_true_color = """
-//VERSION=3
+evalscript_true_color ="""//VERSION=3
 
 function setup() {
     return {
         input: [{
-            bands: ["B02", "B03", "B04"]
+            bands: ["B02", "B03", "B04", "B05", "B06", "B07", "B8A", "B09", "B11", "B12"],
         }],
         output: {
-            bands: 3
+            bands: 10
         }
     };
 }
 
-function evaluatePixel(sample) {
-    return [sample.B04, sample.B03, sample.B02];
+function bilinearInterpolation(value, fromResolution, toResolution) {
+    // Perform bilinear interpolation manually
+    return value * (fromResolution / toResolution);
 }
-"""
+
+function evaluatePixel(sample) {
+    return [
+        bilinearInterpolation(sample.B02, 10, 10),
+        bilinearInterpolation(sample.B03, 10, 10),
+        bilinearInterpolation(sample.B04, 10, 10),
+        bilinearInterpolation(sample.B05, 20, 10),
+        bilinearInterpolation(sample.B06, 20, 10),
+        bilinearInterpolation(sample.B07, 20, 10),
+        bilinearInterpolation(sample.B8A, 20, 10),
+        bilinearInterpolation(sample.B09, 20, 10),
+        bilinearInterpolation(sample.B11, 20, 10),
+        bilinearInterpolation(sample.B12, 20, 10),
+    ];
+}"""
 
 request = SentinelHubRequest(
     data_folder = data_folder,

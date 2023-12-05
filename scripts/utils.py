@@ -2,6 +2,162 @@ import numpy as np
 from math import sqrt
 from scipy.ndimage import median_filter
 
+def calc_indices(arr):
+    
+    '''
+    Takes in an array of 10 and 20m sentinel-2 bands as input and 
+    calculates 55 remote sensing indices. Returns indices 
+    as a combined ndarray.
+    '''
+    
+    # define bands
+    blue = arr[...,0]
+    green = arr[...,1] 
+    red = arr[...,2]
+    nir = arr[...,3] 
+    red_edge1 = arr[...,4] 
+    red_edge2 = arr[...,5]
+    red_edge3 = arr[...,6] 
+    narrow_nir = arr[...,7] 
+    swir1 = arr[...,8]
+    swir2 = arr[...,9]
+    
+    # calculate RS indices
+    ndvi = (nir-red) / (nir+red)  
+    
+    atsavi = 1.22*((nir-1.22*red-0.03) / (1.22*nir+red-1.22*0.03+0.08*(1+1.22**2)))
+
+    arvi = (nir-red-0.069*(red-blue)) / (nir+red-0.069*(red-blue)) 
+     
+    arvi2 = (-0.18+1.17)*ndvi
+     
+    bwdrvi = (0.1*nir-blue) / (0.1*nir+blue)
+    
+    ccci = ((nir-red_edge1) / (nir+red_edge1)) / ((nir-red_edge1) / (nir+red_edge1)) 
+     
+    chl_green = (red_edge3/green)**-1 
+    
+    ci_green = (nir/green)*-1 
+    
+    ci_rededge = (nir/red_edge1)*-1 
+    
+    chl_rededge = (red_edge3/red_edge1)**-1 
+     
+    cvi = nir*(red/green**2) 
+    
+    ci = (red-blue) / red 
+    
+    ctvi = ((ndvi+0.5) / np.abs((ndvi)+0.5))*np.sqrt(np.abs(ndvi+0.5))
+     
+    gdvi = nir-green 
+    
+    evi = 2.5*((nir-red) / ((nir+6*red-7.5*blue)+1)) 
+    
+    def global_env_mon_index(nir, red):
+        n = (2*(nir**2-red**2)+1.5*nir+0.5*red) / (nir+red+0.5)
+        gemi = (n*(1-0.25*n)-((red-0.125) / (1-red))) 
+        return gemi
+        
+    gemi = global_env_mon_index(nir, red) 
+    
+    gli = (2*green-red-blue) / (2*green+red+blue) 
+    
+    gndvi = (nir-green) / (nir+green) 
+    
+    gosavi = (nir-green) / (nir+green+0.16) 
+    
+    gsavi = ((nir-green) / (nir+green+0.5))*(1+0.5) 
+    
+    gbndvi = (nir-(green+blue)) / (nir+(green+blue)) 
+    
+    grndvi = (nir-(green+red)) / (nir+(green+red)) 
+    
+    hue = np.arctan(((2*red-green-blue) / 30.5)*(green-blue)) 
+    
+    ivi = (nir-0.809) / (0.393*red) 
+    
+    ipvi = ((nir / nir+red)/2)*(ndvi+1) 
+    
+    intensity = (1/30.5)*(red+green+blue) 
+    
+    lwci = np.log(1.0-(nir-0.101)) / (-np.log(1.0-(nir-0.101)))
+        
+    msavi2 = (2*nir+1 - np.sqrt(np.abs((2*nir+1)**2-8*(nir-red)))) / 2 
+        
+    normg = green / (nir+red+green) 
+    
+    normnir = nir / (nir+red+green)
+    
+    normr = red / (nir+red+green)
+    
+    ndmi = (nir-swir1) / (nir+swir1) 
+    
+    ngrdi = (green-red) / (green+red)
+    
+    ndvi_ad = (swir2-nir) / (swir2+nir)  
+    
+    bndvi = (nir-blue) / (nir+blue) 
+        
+    mndvi = (nir-swir2) / (nir+swir2) 
+
+    nbr = (nir-swir2) / (nir+swir2) 
+    
+    ri = (red-green) / (red+green) 
+    
+    ndvi690_710 = (nir-red_edge1) / (nir+red_edge1) 
+    
+    pndvi = (nir-(green+red+blue)) / (nir+(green+red+blue)) 
+    
+    pvi = (1 / np.sqrt(0.149**2+1)) * (nir-0.374-0.735) 
+    
+    rbndvi = (nir-(red+blue)) / (nir+(red+blue)) 
+    
+    rsr = (nir / red)*0.640-(swir2 / 0.640)-0.259 
+        
+    rdi = (swir2 / nir) 
+    
+    srnir = (nir / red_edge1)
+    
+    grvi = (nir / green) 
+    
+    dvi = (nir / red) 
+    
+    slavi = (nir / (red_edge1+swir2))
+        
+    gvi = (-0.2848*blue-0.2435*green-0.5436*red+0.7243*nir+0.0840*swir1-0.1800*swir2)
+    
+    wet = (0.1509*blue+0.1973*green+0.3279*red+0.3406*nir-0.7112*swir1-0.4572*swir2) 
+    
+    tsavi = (0.421*(nir-0.421*red-0.824)) / (red+0.421*(nir-0.824)+0.114*(1+0.421**2)) 
+    
+    tvi = np.sqrt(np.abs(ndvi+0.5)) 
+    
+    vari_rededge = (red_edge1-red) / (red_edge1+red)
+    
+    wdvi = (nir-0.752*red) 
+    
+    bsi = (swir1+red)-(nir+blue) / (swir1+red)+(nir+blue) 
+        
+    full_list = [ndvi, atsavi, arvi, arvi2, bwdrvi, ccci, chl_green, ci_green, 
+               ci_rededge, chl_rededge, cvi, ci, ctvi, gdvi, evi, gemi, gli, 
+               gndvi, gosavi, gsavi, gbndvi, grndvi, hue, ivi, ipvi, intensity, 
+               lwci, msavi2, normg, normnir, normr, ndmi, ngrdi, ndvi_ad, bndvi, 
+               mndvi, nbr, ri, ndvi690_710, pndvi, pvi, rbndvi, rsr, rdi, srnir, 
+               grvi, dvi, slavi, gvi, wet, tsavi, tvi, vari_rededge, wdvi, bsi]
+    
+    gs_5 = [evi, msavi2, ndvi, ndmi, bsi] # RS indices for gridsearch
+    
+    rs_indices = np.empty((arr.shape[0], arr.shape[1], arr.shape[2], len(full_list)), dtype=np.float32)
+    gs_indices = np.empty((arr.shape[0], arr.shape[1], arr.shape[2], len(gs_5)), dtype=np.float32)
+    
+    for i, v in enumerate(full_list):
+        rs_indices[..., i] = v
+    
+    for i, v in enumerate(gs_5):
+        gs_indices[..., i] = v
+    
+    return gs_indices, rs_indices
+
 def process_dem(dem):
     dem =  median_filter(dem, size = 5)
     dem = calcSlope(dem.reshape((1, 512, 512)),
