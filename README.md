@@ -22,5 +22,11 @@ $   pip install -r requirements.txt
 - BBoxes in: `./data/bbox/*.json`
 - Time period of images: 15 September, 2023 (or the closest date image available)
 
+### Running the scripts
+```bash
+# downloading data
+$  python get_data.py -d YYYY-MM-DD
+```
+
 ### Resources
 - Max size of bbox for requests [link](https://docs.sentinel-hub.com/api/latest/api/overview/processing-unit/).
