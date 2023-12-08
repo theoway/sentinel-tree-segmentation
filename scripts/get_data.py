@@ -9,11 +9,11 @@ from utils import calcSlope, process_dem
 import numpy as np
 
 #gets the bottom left and the top right coords for the bounding box
-bbox_id = 1
-with open("../data/bbox/bbox_{id}.json".format(id = bbox_id)) as file:
+bbox_id = 0
+with open("../data/bbox_geojson/bounding_boxes{id}.geojson".format(id = bbox_id)) as file:
     data = json.load(file)
     
-coords = data['geometry']['coordinates'][0]
+coords = data['features'][0]['geometry']['coordinates'][0]
 bl = (min(row[0] for row in coords), min(row[1] for row in coords))
 tr = (max(row[0] for row in coords), max(row[1] for row in coords))
 
@@ -35,17 +35,17 @@ bbox = BBox((bl, tr), crs=CRS.WGS84)
 
 size = (512, 512)
 time_interval = start_date, end_date
-data_folder = "../sat_imgs"
+data_folder = "../data/sat_imgs"
 
 evalscript_true_color ="""//VERSION=3
 
 function setup() {
     return {
         input: [{
-            bands: ["B02", "B03", "B04", "B05", "B06", "B07", "B8A", "B09", "B11", "B12"],
+            bands: ["B02", "B03", "B04", "B05", "B06", "B07", "B8A", "B09", "B11", "B12", "CLM"],
         }],
         output: {
-            bands: 10
+            bands: 11
         }
     };
 }
@@ -67,6 +67,7 @@ function evaluatePixel(sample) {
         bilinearInterpolation(sample.B09, 20, 10),
         bilinearInterpolation(sample.B11, 20, 10),
         bilinearInterpolation(sample.B12, 20, 10),
+        sample.CLM,
     ];
 }"""
 
@@ -123,10 +124,13 @@ request_dem = SentinelHubRequest(
     config=config,
 )
 
-
+if not os.path.isdir(data_folder):
+    os.mkdir(data_folder)
+    
 path = os.path.join(data_folder, str(bbox_id))
 if not os.path.isdir(path):
     os.mkdir(path)
+    
 print("Downloading L2A...")
 # image = request.get_data(save_data = True, show_progress=True)
 image = request.get_data()[0]

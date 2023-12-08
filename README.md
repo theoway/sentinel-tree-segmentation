@@ -28,5 +28,10 @@ $   pip install -r requirements.txt
 $  python get_data.py -d YYYY-MM-DD
 ```
 
+```bash
+# generating square bboxes
+$  python generate_square_bbox.py -p [path to the tif labels directory]
+```
+
 ### Resources
 - Max size of bbox for requests [link](https://docs.sentinel-hub.com/api/latest/api/overview/processing-unit/).
