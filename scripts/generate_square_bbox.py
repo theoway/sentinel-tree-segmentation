@@ -7,6 +7,7 @@ from fiona.crs import from_epsg
 import os
 import numpy as np
 from geopy.distance import geodesic
+import pandas as pd
 import argparse
 
 parser = argparse.ArgumentParser(description = "Tiff Labels Path")
@@ -47,12 +48,12 @@ def generate_bounding_boxes(tiff_path, box_size):
         bounds = box(*src.bounds)
         avg_lat = (bounds.bounds[1] + bounds.bounds[2]) / 2
         box_size = meters_to_degrees(box_size, avg_lat)
+        
         # Calculate the number of boxes in the x and y directions
         num_boxes_x = int((bounds.bounds[2] - bounds.bounds[0]) // box_size)
         num_boxes_y = int((bounds.bounds[3] - bounds.bounds[1]) // box_size)
-
+        
         # Generate the bounding boxes
-
         for i in range(num_boxes_x):
             for j in range(num_boxes_y):
                 # Calculate the coordinates of the box
@@ -69,26 +70,38 @@ def generate_bounding_boxes(tiff_path, box_size):
                     window = src.window(min_x, min_y, max_x, max_y)
                     image_array = src.read(window=window)
                     pixels = image_array.shape[0] * image_array.shape[1]
-                    if np.count_nonzero(image_array) >= pixels * 0.50:                        
+                    
+                    if np.count_nonzero(image_array) >= pixels * 0.5:  
                         imgs.append(image_array)                    
                         bounding_boxes.append(box_geometry)
-                    
-
+        
     return bounding_boxes, imgs
 
-data_folder = '../data/bbox_geojson'
-target_crs = from_epsg(4326)
-if not os.path.isdir(data_folder):
-    os.mkdir(data_folder)
+geojson_folder = '../data/bbox_geojson'
+if not os.path.isdir(geojson_folder):
+    os.mkdir(geojson_folder)
+    
+labels_folder = '../data/labels'
+if not os.path.isdir(labels_folder):
+    os.mkdir(labels_folder)    
 
+target_crs = from_epsg(4326)    
+all_gdf = gpd.GeoDataFrame()
 print("Generating Fixed Size Square Bboxes...")
-for i, path in enumerate(tif_labels_path):
+target_crs = from_epsg(4326)
+for i, path in enumerate(tif_labels_path):    
     # Generate bounding boxes
-    bounding_boxes, _ = generate_bounding_boxes(path, box_size)
-
+    bounding_boxes, imgs = generate_bounding_boxes(path, box_size)
+    
     # Save the bounding boxes to a GeoJSON file
     gdf = gpd.GeoDataFrame(geometry=bounding_boxes, crs=target_crs)
-    gdf['file_path'] = os.path.abspath(path)
-    gdf.to_file(data_folder + '/bounding_boxes{id}.geojson'.format(id = i), driver='GeoJSON')
-    
-print("Generated geojson and saved to " + os.path.abspath(data_folder))
+    gdf['height'] = (imgs[0].shape[1])
+    gdf['width'] = (imgs[0].shape[2])
+    all_gdf = pd.concat([all_gdf, gdf], ignore_index = True)
+
+all_gdf.to_file(geojson_folder + '/bounding_boxes.geojson', driver='GeoJSON')    
+print("Generated geojson and saved to " + os.path.abspath(geojson_folder))
+
+for i in range(100):
+    np.save(labels_folder + "/{iid}.npy".format(iid = i), imgs[i])      
+print("Saved the Fixed Size Square Bboxes as numpy arrays to " + os.path.abspath(labels_folder))

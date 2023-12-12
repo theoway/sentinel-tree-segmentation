@@ -5,23 +5,114 @@ import os
 import json
 from datetime import datetime, timedelta
 from utils import calcSlope, process_dem
-
+from tqdm import tqdm
 import numpy as np
 
 #gets the bottom left and the top right coords for the bounding box
-bbox_id = 0
-with open("../data/bbox_geojson/bounding_boxes{id}.geojson".format(id = bbox_id)) as file:
+with open("../data/bbox_geojson/bounding_boxes.geojson") as file:
     data = json.load(file)
-    
-coords = data['features'][0]['geometry']['coordinates'][0]
-bl = (min(row[0] for row in coords), min(row[1] for row in coords))
-tr = (max(row[0] for row in coords), max(row[1] for row in coords))
 
 load_dotenv()
 
 config = SHConfig()
 config.sh_client_id = os.getenv("CLIENT_ID")
 config.sh_client_secret = os.getenv("CLIENT_SECRET")
+
+def getL2A():
+    evalscript_true_color ="""//VERSION=3
+
+    function setup() {
+        return {
+            input: [{
+                bands: ["B02", "B03", "B04", "B05", "B06", "B07", "B8A", "B09", "B11", "B12", "CLM", "dataMask"],
+            }],
+            output: {
+                bands: 11
+            }
+        };
+    }
+
+    function evaluatePixel(sample) {
+        if (sample.dataMask != 1) {
+            return [99, 99, 99]
+        }
+        return [
+            2.5 * sample.B02,
+            2.5 * sample.B03,
+            2.5 * sample.B04,
+            2.5 * sample.B05,
+            2.5 * sample.B06,
+            2.5 * sample.B07,
+            2.5 * sample.B8A,
+            2.5 * sample.B09,
+            2.5 * sample.B11,
+            2.5 * sample.B12,
+            sample.CLM,
+        ];
+    }"""
+
+
+    request = SentinelHubRequest(
+        data_folder = data_folder,
+        evalscript=evalscript_true_color,
+        input_data=[
+            SentinelHubRequest.input_data(
+                data_collection=DataCollection.SENTINEL2_L2A,
+                time_interval=time_interval,
+                mosaicking_order="leastCC",
+    
+            )
+        ],
+        responses=[SentinelHubRequest.output_response("default", MimeType.TIFF)],
+        bbox=bbox,
+        size=size,
+        config=config,
+    )
+
+    image = request.get_data()[0]
+    
+    return image
+
+def getDEM():
+    evalscript_true_color = """
+    //VERSION=3
+
+    function setup() {
+        return {
+            input: [{
+                bands: ["DEM"]
+            }],
+            output: {
+                bands: 1,
+                sampleType: "FLOAT32" 
+            }
+        };
+    }
+
+    function evaluatePixel(sample) {
+        return [sample.DEM];
+    }
+    """
+
+    request = SentinelHubRequest(
+        data_folder = data_folder,
+        evalscript=evalscript_true_color,
+        input_data=[
+            SentinelHubRequest.input_data(
+                data_collection=DataCollection.DEM,
+                time_interval=time_interval,
+                mosaicking_order="leastCC"
+
+            )
+        ],
+        responses=[SentinelHubRequest.output_response("default", MimeType.TIFF)],
+        bbox=bbox,
+        size=size,
+        config=config,
+    )
+
+    dem = request.get_data()[0]
+    return dem
 
 parser = argparse.ArgumentParser(description = "Date")
 parser.add_argument("-d", "--date", type = str, required = True, help = "The date in YYYY-MM-DD format")
@@ -31,112 +122,34 @@ dt = [int(d) for d in args.date.split('-')]
 date = datetime(*dt)
 start_date = date - timedelta(days = 60)
 end_date = date + timedelta(days = 60)
-bbox = BBox((bl, tr), crs=CRS.WGS84)
 
-size = (512, 512)
 time_interval = start_date, end_date
 data_folder = "../data/sat_imgs"
-
-evalscript_true_color ="""//VERSION=3
-
-function setup() {
-    return {
-        input: [{
-            bands: ["B02", "B03", "B04", "B05", "B06", "B07", "B8A", "B09", "B11", "B12", "CLM"],
-        }],
-        output: {
-            bands: 11
-        }
-    };
-}
-
-function bilinearInterpolation(value, fromResolution, toResolution) {
-    // Perform bilinear interpolation manually
-    return value * (fromResolution / toResolution);
-}
-
-function evaluatePixel(sample) {
-    return [
-        bilinearInterpolation(sample.B02, 10, 10),
-        bilinearInterpolation(sample.B03, 10, 10),
-        bilinearInterpolation(sample.B04, 10, 10),
-        bilinearInterpolation(sample.B05, 20, 10),
-        bilinearInterpolation(sample.B06, 20, 10),
-        bilinearInterpolation(sample.B07, 20, 10),
-        bilinearInterpolation(sample.B8A, 20, 10),
-        bilinearInterpolation(sample.B09, 20, 10),
-        bilinearInterpolation(sample.B11, 20, 10),
-        bilinearInterpolation(sample.B12, 20, 10),
-        sample.CLM,
-    ];
-}"""
-
-request = SentinelHubRequest(
-    data_folder = data_folder,
-    evalscript=evalscript_true_color,
-    input_data=[
-        SentinelHubRequest.input_data(
-            data_collection=DataCollection.SENTINEL2_L2A,
-            time_interval=time_interval,
-            mosaicking_order="leastCC"
-        )
-    ],
-    responses=[SentinelHubRequest.output_response("default", MimeType.TIFF)],
-    bbox=bbox,
-    size=size,
-    config=config,
-)
-
-evalscript_dem = """
-//VERSION=3
-
-function setup() {
-    return {
-        input: [{
-            bands: ["DEM"]
-        }],
-        output: {
-            bands: 1,
-            sampleType: "FLOAT32" 
-        }
-    };
-}
-
-function evaluatePixel(sample) {
-    return [sample.DEM];
-}
-"""
-
-request_dem = SentinelHubRequest(
-    data_folder = data_folder,
-    evalscript=evalscript_dem,
-    input_data=[
-        SentinelHubRequest.input_data(
-            data_collection=DataCollection.DEM,
-            time_interval=time_interval,
-            mosaicking_order="leastCC"
-            
-        )
-    ],
-    responses=[SentinelHubRequest.output_response("default", MimeType.TIFF)],
-    bbox=bbox,
-    size=size,
-    config=config,
-)
-
 if not os.path.isdir(data_folder):
     os.mkdir(data_folder)
     
-path = os.path.join(data_folder, str(bbox_id))
-if not os.path.isdir(path):
-    os.mkdir(path)
+
+print("Downloading Sentinel 2 Bands...")
+
+for i in tqdm(range(100)):
+    coords = data['features'][i]['geometry']['coordinates'][0]
+    bl = (min(row[0] for row in coords), min(row[1] for row in coords))
+    tr = (max(row[0] for row in coords), max(row[1] for row in coords))
+    size = (data['features'][i]['properties']['width'], data['features'][i]['properties']['height'])
+    bbox = BBox((bl, tr), crs=CRS.WGS84)  
     
-print("Downloading L2A...")
-# image = request.get_data(save_data = True, show_progress=True)
-image = request.get_data()[0]
-np.save(path + "/L2A", image)
-print("Downloading DEM...")
-# image_dem = request_dem.get_data(save_data = True, show_progress = True)
-image_dem = request_dem.get_data()[0]
-image_dem = process_dem(image_dem)
-np.save(path + "/DEM", image_dem)
+    image = getL2A()
+    dem = getDEM()
+    sub = (image[..., 3] - image[..., 2]).astype(float)
+    add = (image[..., 3] + image[..., 2]).astype(float)
+    ndvi = np.divide(sub, add, out = np.zeros_like(add) - 1, where = add != 0)
+    ndvi = np.clip(ndvi, -1, 1)
+    dem3 = dem[:, :, np.newaxis]
+    ndvi3 = ndvi[:, :, np.newaxis]
+    
+    final_image = np.concatenate((image, dem3, ndvi3), axis = -1)
+    np.save(data_folder + "/{iid}.npy".format(iid = i), image)
+
+print("Saved to " + os.path.abspath(data_folder))
+
+    
