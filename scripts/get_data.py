@@ -148,7 +148,7 @@ for i in tqdm(range(100)):
     ndvi3 = ndvi[:, :, np.newaxis]
     
     final_image = np.concatenate((image, dem3, ndvi3), axis = -1)
-    np.save(data_folder + "/{iid}.npy".format(iid = i), image)
+    np.save(data_folder + "/{iid}.npy".format(iid = i), final_image)
 
 print("Saved to " + os.path.abspath(data_folder))
 
