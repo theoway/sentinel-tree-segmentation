@@ -99,14 +99,14 @@ model = UNet(in_channels, out_channels)
 criterion = nn.BCEWithLogitsLoss()
 optimizer = optim.Adam(model.parameters(), lr=0.001)
 
-epochs = 1
+epochs = 30
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 device = "cpu"
 model.to(device)
 
 
 csv_file_path = 'training_metrics.csv'
-fieldnames = ['Epoch', 'Train_Loss', 'Train_Accuracy', 'Val_Loss', 'Val_Accuracy']
+fieldnames = ['Epoch', 'Train_Loss', 'Val_Loss']
 if not os.path.exists(csv_file_path):
     with open(csv_file_path, 'w', newline='') as csvfile:
         
@@ -119,7 +119,7 @@ for epoch in range(epochs):
     total_train_loss = 0
     train_predictions = []
     train_labels = []
-
+    optimizer.zero_grad()
     for images, labels in tqdm(train_loader, desc=f"Epoch {epoch+1}/{epochs}"):
         images, labels = images.to(device), labels.to(device)
 
@@ -134,9 +134,9 @@ for epoch in range(epochs):
         train_predictions.extend(predicted_labels.cpu().numpy().flatten())
         train_labels.extend(labels.cpu().numpy().flatten())
         
-        optimizer.zero_grad()
+        
         loss.backward()
-        optimizer.step()
+    optimizer.step()
         
     train_accuracy = accuracy_score(train_labels, train_predictions)
 
@@ -156,20 +156,20 @@ for epoch in range(epochs):
             loss = criterion(outputs, labels)
             total_val_loss += loss.item()
 
-            predicted_labels = (torch.sigmoid(outputs) > 0.5).float()
-            val_predictions.extend(predicted_labels.cpu().numpy().flatten())
-            val_labels.extend(labels.cpu().numpy().flatten())
+#             predicted_labels = (torch.sigmoid(outputs) > 0.5).float()
+#             val_predictions.extend(predicted_labels.cpu().numpy().flatten())
+#             val_labels.extend(labels.cpu().numpy().flatten())
 
-    val_accuracy = accuracy_score(val_labels, val_predictions)
+#     val_accuracy = accuracy_score(val_labels, val_predictions)
 
-    print(f"Epoch {epoch + 1}/{epochs} - Train Loss: {total_train_loss / len(train_loader)} - Train Accuracy: {train_accuracy}")
-    print(f"Epoch {epoch + 1}/{epochs} - Val Loss: {total_val_loss / len(test_loader)} - Val Accuracy: {val_accuracy}")
+    print(f"Epoch {epoch + 1}/{epochs} - Train Loss: {total_train_loss / len(train_loader)}")
+    print(f"Epoch {epoch + 1}/{epochs} - Val Loss: {total_val_loss / len(test_loader)}")
 
     with open(csv_file_path, 'a', newline='') as csvfile:
         csv_writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
         csv_writer.writerow({'Epoch': epoch + 1, 'Train_Loss': total_train_loss / len(train_loader),
-                             'Train_Accuracy': train_accuracy, 'Val_Loss': total_val_loss / len(test_loader),
-                             'Val_Accuracy': val_accuracy})
+                             'Val_Loss': total_val_loss / len(test_loader),
+                             })
         
 torch.save(model.state_dict(), 'unet_model.pth')
 print("Model saved in the current directory")

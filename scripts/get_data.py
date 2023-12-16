@@ -131,7 +131,7 @@ if not os.path.isdir(data_folder):
 
 print("Downloading Sentinel 2 Bands...")
 
-for i in tqdm(range(100)):
+for i in tqdm(len(data['features'])):
     coords = data['features'][i]['geometry']['coordinates'][0]
     bl = (min(row[0] for row in coords), min(row[1] for row in coords))
     tr = (max(row[0] for row in coords), max(row[1] for row in coords))

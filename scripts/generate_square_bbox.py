@@ -102,6 +102,6 @@ for i, path in enumerate(tif_labels_path):
 all_gdf.to_file(geojson_folder + '/bounding_boxes.geojson', driver='GeoJSON')    
 print("Generated geojson and saved to " + os.path.abspath(geojson_folder))
 
-for i in range(100):
+for i in range(len(all_gdf)):
     np.save(labels_folder + "/{iid}.npy".format(iid = i), imgs[i])      
 print("Saved the Fixed Size Square Bboxes as numpy arrays to " + os.path.abspath(labels_folder))
