@@ -92,7 +92,8 @@ target_crs = from_epsg(4326)
 for i, path in enumerate(tif_labels_path):    
     # Generate bounding boxes
     bounding_boxes, imgs = generate_bounding_boxes(path, box_size)
-    
+    if len(imgs) == 0:
+        continue
     # Save the bounding boxes to a GeoJSON file
     gdf = gpd.GeoDataFrame(geometry=bounding_boxes, crs=target_crs)
     gdf['height'] = (imgs[0].shape[1])

@@ -130,15 +130,15 @@ for epoch in range(epochs):
         loss = criterion(outputs, labels)
         total_train_loss += loss.item()
 
-        predicted_labels = (torch.sigmoid(outputs) > 0.5).float()
-        train_predictions.extend(predicted_labels.cpu().numpy().flatten())
-        train_labels.extend(labels.cpu().numpy().flatten())
+        # predicted_labels = (torch.sigmoid(outputs) > 0.5).float()
+        # train_predictions.extend(predicted_labels.cpu().numpy().flatten())
+        # train_labels.extend(labels.cpu().numpy().flatten())
         
         
         loss.backward()
     optimizer.step()
         
-    train_accuracy = accuracy_score(train_labels, train_predictions)
+    # train_accuracy = accuracy_score(train_labels, train_predictions)
 
     model.eval()
     total_val_loss = 0
