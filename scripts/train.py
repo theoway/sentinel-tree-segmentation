@@ -57,11 +57,12 @@ class CustomDataset(Dataset):
         image = np.load(image_path)
         label = np.load(label_path)
         image = image.astype(np.float32)
-        mask = np.where(label >= 35, 1, 0)
-        mask = np.reshape(mask, (mask.shape[1], mask.shape[2], 1))
+        label = np.reshape(label, (label.shape[1], label.shape[2], 1))
         
         image = self.interpolate(image, self.target_size)
-        mask = self.interpolate(mask, self.target_size)
+        label = self.interpolate(label, self.target_size)
+
+        mask = np.where(label >= 35, 1, 0)
         image[..., 0 : 3] /= 255
         
         if self.transform:
