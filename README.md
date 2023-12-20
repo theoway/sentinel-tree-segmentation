@@ -69,7 +69,7 @@ $  python train.py
 ```
 
 ### 4) Prediction
-- Loads the trained model and predicts on square bounding boxes extracted from a geojson file and saves the predictions in `preds/labels` in `tif` format
+- Loads the trained model and predicts on square bounding boxes extracted from a geojson file and saves the predictions in the `preds/labels` in `npy` format
 
 ```bash
 # prediction
