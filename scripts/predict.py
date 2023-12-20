@@ -265,6 +265,7 @@ for i in tqdm(range(len(data['features']))):
     
 preds_bboxes_path = '../preds/bboxes/'
 preds_bboxes_npy_path = [os.path.join(preds_bboxes_path, file) for file in os.listdir(preds_bboxes_path) if file.endswith(".npy")]
+preds_bboxes_npy_path = sorted(preds_bboxes_npy_path)
 
 def interpolate(array, target_size):
     zoom_factors = [target_size[i] / array.shape[i] for i in range(2)]
@@ -280,8 +281,11 @@ model.eval()
 data_folder = "../preds/labels"
 if not os.path.isdir(data_folder):
     os.mkdir(data_folder)
+
+def save_as_tif(array, output_path, metadata):
+    with rasterio.open(output_path, 'w', **metadata) as dst:
+        dst.write(array, 1)    
     
-print("Predicting...")    
 for i, path in enumerate(preds_bboxes_npy_path):    
     im = np.load(path)
     im = im.astype(np.float32)
@@ -293,7 +297,17 @@ for i, path in enumerate(preds_bboxes_npy_path):
         predicted_output = model(im)
 
     res = predicted_output.numpy()
-    res = np.reshape(res, (512, 512, 1))
-    np.save(data_folder + "/{iid}.npy".format(iid = i), res)
-    
-print("Saved the preds to " + data_folder)    
+    res = np.reshape(res, (512, 512))
+    metadata = {
+        'driver': 'GTiff',
+        'count': 1,
+        'dtype': 'float32',
+        'width': res.shape[1],
+        'height': res.shape[0],
+        'crs': 'EPSG:4326',  
+        'transform': from_origin(0, 0, 1, 1),  
+    }
+    save_as_tif(res, f"../preds/labels/{i}.tif", metadata)   
+
+print()    
+print("Saved the predictions to " + data_folder)     
