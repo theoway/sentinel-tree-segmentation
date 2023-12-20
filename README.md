@@ -68,6 +68,13 @@ After each epoch, the model is evaluated on the validation set. Metrics are also
 $  python train.py
 ```
 
+### 4) Prediction
+- Loads the trained model and predicts on square bounding boxes extracted from a geojson file and saves the predictions in `preds/labels` in `tif` format
+
+```bash
+# prediction
+$  python predict.py -d YYYY-MM-DD -p [path to the geojson file]
+```
 
 ### Resources
 - Max size of bbox for requests [link](https://docs.sentinel-hub.com/api/latest/api/overview/processing-unit/).

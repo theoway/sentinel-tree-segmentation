@@ -2,6 +2,7 @@
 data
 data/images/
 sat_imgs/
+preds
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
